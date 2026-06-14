@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vigneron MMT FA - Portail Patron</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-stone-950 text-stone-100 min-h-screen" x-data="patronApp()">
+
+    <div x-show="!isLogged" class="min-h-screen bg-stone-950 p-4 flex items-center justify-center">
+        <div class="w-full max-w-md bg-stone-900 rounded-[2rem] shadow-2xl border border-rose-900/50 overflow-hidden">
+            <div class="bg-gradient-to-r from-rose-900 to-stone-900 p-8 text-white text-center border-b border-rose-900/50">
+                <div class="mx-auto w-24 h-24 mb-4 flex items-center justify-center bg-stone-950 rounded-full border-4 border-rose-800 text-4xl">🍇</div>
+                <h1 class="text-2xl font-bold tracking-wider">Vigneron MMT FA</h1>
+                <p class="text-xs text-rose-300 uppercase font-semibold mt-1">Portail Patron - Accès Restreint</p>
+            </div>
+            
+            <div class="p-6 space-y-4 bg-stone-900/50">
+                <input type="text" x-model="identifier" placeholder="Identifiant" class="w-full bg-stone-950 border border-stone-800 text-white px-4 py-3 rounded-xl focus:border-rose-500 outline-none">
+                <input type="password" x-model="password" placeholder="Mot de passe" class="w-full bg-stone-950 border border-stone-800 text-white px-4 py-3 rounded-xl focus:border-rose-500 outline-none" @keyup.enter="onLogin">
+                <button @click="onLogin" class="w-full rounded-xl bg-rose-700 text-white py-3 font-bold uppercase tracking-wider hover:bg-rose-600 transition">Accéder</button>
+                <p x-show="error" x-text="error" class="text-red-400 text-center text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="isLogged" style="display: none;" class="max-w-4xl mx-auto p-6">
+        <div class="flex justify-between items-center mb-8 border-b border-stone-800 pb-4">
+            <h2 class="text-xl font-bold text-rose-400 uppercase tracking-wider">Calculateur de Paiements</h2>
+            <button @click="isLogged = false" class="text-stone-400 text-xs hover:text-white underline">Déconnexion</button>
+        </div>
+
+        <div class="bg-stone-900 border border-stone-800 rounded-2xl p-8 shadow-xl">
+            <label class="block text-sm font-bold text-stone-300 mb-4">Nombre de bouteilles produites :</label>
+            <input type="number" x-model.number="bottles" class="w-full bg-stone-950 border border-rose-900/50 text-white px-4 py-6 rounded-2xl text-4xl font-mono text-center shadow-inner mb-6">
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-stone-950 p-6 rounded-xl border border-stone-800">
+                    <p class="text-xs text-stone-400 uppercase font-bold">Taux appliqué</p>
+                    <p class="text-3xl font-mono text-white" x-text="getRate(bottles) + ' $'"></p>
+                </div>
+                <div class="bg-rose-900/20 p-6 rounded-xl border border-rose-900/50">
+                    <p class="text-xs text-rose-300 uppercase font-bold">Total à payer</p>
+                    <p class="text-3xl font-mono text-green-400 font-bold" x-text="(bottles * getRate(bottles)).toLocaleString() + ' $'"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function patronApp() {
+            return {
+                isLogged: false,
+                identifier: '',
+                password: '',
+                error: '',
+                bottles: 0,
+                onLogin() {
+                    if (this.identifier === 'nie' && this.password === '1612') {
+                        this.isLogged = true;
+                        this.error = '';
+                    } else {
+                        this.error = 'Identifiant ou mot de passe incorrect.';
+                    }
+                },
+                getRate(b) {
+                    if (b >= 5000) return 300;
+                    if (b >= 2500) return 260;
+                    return 200;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
