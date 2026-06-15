@@ -3,74 +3,536 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vigneron MMT FA - Portail Patron</title>
+    <title>Vignoble JMS - Intranet Production & Ventes</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-stone-950 text-stone-100 min-h-screen" x-data="patronApp()">
+<body class="bg-stone-950 text-stone-100 min-h-screen" 
+      x-data="vignobleApp()" 
+      x-init="initApp()">
 
     <div x-show="!isLogged" class="min-h-screen bg-stone-950 p-4 flex items-center justify-center">
         <div class="w-full max-w-md bg-stone-900 rounded-[2rem] shadow-2xl border border-rose-900/50 overflow-hidden">
             <div class="bg-gradient-to-r from-rose-900 to-stone-900 p-8 text-white text-center border-b border-rose-900/50">
                 <div class="mx-auto w-24 h-24 mb-4 flex items-center justify-center bg-stone-950 rounded-full border-4 border-rose-800 text-4xl">🍇</div>
-                <h1 class="text-2xl font-bold tracking-wider">Vigneron MMT FA</h1>
-                <p class="text-xs text-rose-300 uppercase font-semibold mt-1">Portail Patron - Accès Restreint</p>
+                <h1 class="text-2xl font-bold tracking-wider">Vigneron MMT</h1>
+                <p class="text-xs text-rose-300 uppercase font-semibold mt-1">Portail Viticole - Connexion</p>
             </div>
             
             <div class="p-6 space-y-4 bg-stone-900/50">
-                <input type="text" x-model="identifier" placeholder="Identifiant" class="w-full bg-stone-950 border border-stone-800 text-white px-4 py-3 rounded-xl focus:border-rose-500 outline-none">
-                <input type="password" x-model="password" placeholder="Mot de passe" class="w-full bg-stone-950 border border-stone-800 text-white px-4 py-3 rounded-xl focus:border-rose-500 outline-none" @keyup.enter="onLogin">
-                <button @click="onLogin" class="w-full rounded-xl bg-rose-700 text-white py-3 font-bold uppercase tracking-wider hover:bg-rose-600 transition">Accéder</button>
-                <p x-show="error" x-text="error" class="text-red-400 text-center text-sm"></p>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-stone-300">Identifiant</label>
+                    <input type="text" x-model="identifier" placeholder="Votre identifiant" class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-xl focus:outline-none focus:border-rose-500 text-sm">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-stone-300">Mot de passe</label>
+                    <input type="password" x-model="password" placeholder="Votre mot de passe" class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-xl focus:outline-none focus:border-rose-500 text-sm" @keyup.enter="onLogin">
+                </div>
+                <button @click="onLogin" class="w-full rounded-xl bg-rose-700 text-white py-2.5 text-sm font-bold uppercase tracking-wider hover:bg-rose-600 transition shadow-lg shadow-rose-900/20">Accéder au portail</button>
+                <p x-show="loginError" x-text="loginError" class="text-sm text-red-400 font-medium text-center" style="display: none;"></p>
+                
+                <div class="text-xs text-stone-500 text-center mt-4">
+                    Comptes par défaut :<br>
+                    patron / admin (Patron)<br>
+                    employe / 1234 (Employé)
+                </div>
             </div>
         </div>
     </div>
 
-    <div x-show="isLogged" style="display: none;" class="max-w-4xl mx-auto p-6">
-        <div class="flex justify-between items-center mb-8 border-b border-stone-800 pb-4">
-            <h2 class="text-xl font-bold text-rose-400 uppercase tracking-wider">Calculateur de Paiements</h2>
-            <button @click="isLogged = false" class="text-stone-400 text-xs hover:text-white underline">Déconnexion</button>
-        </div>
+    <div x-show="isLogged" style="display: none;" class="flex flex-col min-h-screen bg-stone-950">
+        
+        <header class="bg-stone-900 border-b border-rose-900/40 sticky top-0 z-20">
+            <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="h-12 w-12 bg-rose-900 rounded-full flex items-center justify-center text-2xl border border-rose-700">🍷</div>
+                    <div>
+                        <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
+                            Domaine MMT FA 
+                            <span class="text-xs bg-rose-950 border border-rose-800 text-rose-400 font-bold px-2 py-0.5 rounded-md uppercase" x-text="role.replace('-', ' ')"></span>
+                        </h1>
+                        <p class="text-xs text-stone-400">Session : <span class="text-stone-200 font-semibold" x-text="currentUser"></span></p>
+                    </div>
+                </div>
 
-        <div class="bg-stone-900 border border-stone-800 rounded-2xl p-8 shadow-xl">
-            <label class="block text-sm font-bold text-stone-300 mb-4">Nombre de bouteilles produites :</label>
-            <input type="number" x-model.number="bottles" class="w-full bg-stone-950 border border-rose-900/50 text-white px-4 py-6 rounded-2xl text-4xl font-mono text-center shadow-inner mb-6">
+                <nav class="flex items-center bg-stone-950 p-1 rounded-xl border border-stone-800 gap-1 overflow-x-auto">
+                    <button @click="currentTab = 'production'" :class="currentTab === 'production' ? 'bg-rose-700 text-white' : 'text-stone-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap">Saisie & Historique</button>
+                    <button x-show="['patron', 'co-patron'].includes(role)" @click="currentTab = 'patron'; $nextTick(() => { updateChart(); })" :class="currentTab === 'patron' ? 'bg-rose-700 text-white' : 'text-stone-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap">Analyse & Graphique</button>
+                    <button x-show="['patron', 'co-patron'].includes(role)" @click="currentTab = 'suivi'" :class="currentTab === 'suivi' ? 'bg-rose-700 text-white' : 'text-stone-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap">Suivi Employés</button>
+                    <button x-show="['patron', 'co-patron'].includes(role)" @click="currentTab = 'gestion'" :class="currentTab === 'gestion' ? 'bg-rose-700 text-white' : 'text-stone-400 hover:text-white'" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition whitespace-nowrap">Gestion Employés</button>
+                </nav>
+
+                <button @click="isLogged = false; identifier = ''; password = '';" class="inline-flex items-center justify-center rounded-xl border border-stone-800 bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-800 transition">Déconnexion</button>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 md:px-8 py-6 w-full flex-grow">
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-stone-950 p-6 rounded-xl border border-stone-800">
-                    <p class="text-xs text-stone-400 uppercase font-bold">Taux appliqué</p>
-                    <p class="text-3xl font-mono text-white" x-text="getRate(bottles) + ' $'"></p>
+            <div x-show="currentTab === 'production'" class="space-y-6">
+                <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-lg font-bold text-rose-400 uppercase tracking-wider border-b border-stone-800 pb-4 mb-6">Déclaration de production</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-bold text-stone-300 mb-2">Semaine de production :</label>
+                                <select x-model.number="selectedWeekIndex" class="w-full bg-stone-950 border border-stone-800 text-white px-4 py-3 rounded-xl focus:outline-none focus:border-rose-500 text-sm shadow-inner">
+                                    <template x-for="week in allWeeks" :key="week.index">
+                                        <option :value="week.index" x-text="week.label"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-stone-300 mb-2">Nombre de bouteilles produites :</label>
+                                <input type="number" x-model.number="bottlesProduced" min="0" placeholder="Ex: 520" class="w-full bg-stone-950 border border-rose-900/50 text-white px-4 py-4 rounded-xl focus:outline-none focus:border-rose-500 text-2xl font-mono text-center shadow-inner">
+                            </div>
+                        </div>
+
+                        <div class="bg-gradient-to-br from-stone-800 to-stone-900 rounded-xl p-6 border border-stone-700 flex flex-col justify-center space-y-4">
+                            <div>
+                                <p class="text-sm text-stone-400 uppercase font-semibold">Taux appliqué (Prix / Bouteille)</p>
+                                <p class="text-3xl font-mono text-white mt-1"><span x-text="employeeRate"></span> $</p>
+                            </div>
+                            <div class="border-t border-stone-700 pt-4">
+                                <p class="text-sm text-rose-400 uppercase font-bold">Salaire total généré</p>
+                                <p class="text-4xl font-mono text-green-400 font-bold mt-2"><span x-text="employeeTotal.toLocaleString('en-US')"></span> $</p>
+                            </div>
+                            
+                            <button @click="saveProduction" class="w-full bg-rose-700 hover:bg-rose-600 text-white font-bold py-3 rounded-xl transition shadow-lg uppercase tracking-wider text-sm mt-4">
+                                💾 Enregistrer la production
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-rose-900/20 p-6 rounded-xl border border-rose-900/50">
-                    <p class="text-xs text-rose-300 uppercase font-bold">Total à payer</p>
-                    <p class="text-3xl font-mono text-green-400 font-bold" x-text="(bottles * getRate(bottles)).toLocaleString() + ' $'"></p>
+
+                <div x-show="availableWeeks.length > 0" class="space-y-6" style="display: none;">
+                    <div class="bg-stone-950/60 p-4 rounded-xl border border-stone-800 text-xs text-stone-400 flex items-center justify-between">
+                        <span x-show="['patron', 'co-patron'].includes(role)">👁️ En tant que <b>Patron/Co-Patron</b>, vous visualisez la production globale de toute l'équipe.</span>
+                        <span x-show="['employe', 'novice'].includes(role)">🔒 En tant qu'<b>Employé/Novice</b>, vous voyez uniquement vos propres déclarations.</span>
+                    </div>
+
+                    <template x-for="weekId in availableWeeks" :key="weekId">
+                        <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl">
+                            <h2 class="text-md font-bold text-stone-300 uppercase tracking-wider border-b border-stone-800 pb-3 mb-4 flex items-center justify-between">
+                                <span x-text="'Historique - ' + groupedHistory[weekId].label"></span>
+                                <span class="bg-rose-900/50 text-rose-300 px-3 py-1 rounded-lg text-xs font-mono" x-text="'Total visible : ' + groupedHistory[weekId].totalBottles + ' bt'"></span>
+                            </h2>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-stone-950 text-stone-400 text-xs uppercase border-b border-stone-800">
+                                        <tr>
+                                            <th class="py-3 px-4">Date & Heure</th>
+                                            <th class="py-3 px-4">Auteur</th>
+                                            <th class="py-3 px-4">Bouteilles</th>
+                                            <th class="py-3 px-4 text-green-400">Gain Total ($)</th>
+                                            <th class="py-3 px-4 text-rose-400" x-show="['patron', 'co-patron'].includes(role)">Bénéfice JMS</th>
+                                            <th class="py-3 px-4" x-show="['patron', 'co-patron'].includes(role)">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-stone-800">
+                                        <template x-for="item in groupedHistory[weekId].items" :key="item.id">
+                                            <tr class="hover:bg-stone-800/40 transition">
+                                                <td class="py-3 px-4 text-stone-300" x-text="item.date"></td>
+                                                <td class="py-3 px-4">
+                                                    <span class="text-xs bg-stone-950 px-2 py-1 rounded border border-stone-800 font-semibold text-stone-200 uppercase" x-text="item.author || 'Inconnu'"></span>
+                                                </td>
+                                                <td class="py-3 px-4 font-mono text-white font-bold" x-text="item.bottles"></td>
+                                                <td class="py-3 px-4 font-mono text-green-400 font-bold"><span x-text="item.employeeTotal.toLocaleString('en-US')"></span> $</td>
+                                                <td class="py-3 px-4 font-mono text-rose-400" x-show="['patron', 'co-patron'].includes(role)"><span x-text="item.companyProfit.toLocaleString('en-US')"></span> $</td>
+                                                <td class="py-3 px-4" x-show="['patron', 'co-patron'].includes(role)">
+                                                    <div class="flex items-center gap-3">
+                                                        <button @click="editHistory(item.id)" class="text-xs text-blue-500 hover:text-blue-400 font-semibold underline">Modifier</button>
+                                                        <button @click="deleteHistory(item.id)" class="text-xs text-red-500 hover:text-red-400 font-semibold underline">Supprimer</button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
-        </div>
+
+            <div x-show="currentTab === 'patron'" class="space-y-6" style="display: none;">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-stone-950 border border-stone-800 p-6 rounded-xl flex flex-col justify-between shadow-xl">
+                        <p class="text-xs text-stone-400 uppercase tracking-wider font-bold">Total Produit (Global)</p>
+                        <p class="text-4xl font-mono text-white mt-2"><span x-text="globalStats.totalBottles.toLocaleString('en-US')"></span></p>
+                    </div>
+                    <div class="bg-stone-950 border border-rose-900/50 p-6 rounded-xl flex flex-col justify-between shadow-xl">
+                        <p class="text-xs text-rose-400 uppercase tracking-wider font-bold">Masse Salariale Totale</p>
+                        <p class="text-4xl font-mono text-rose-400 mt-2">- <span x-text="globalStats.totalEmployeePay.toLocaleString('en-US')"></span> $</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-stone-900 to-green-900/20 border border-green-900/50 p-6 rounded-xl flex flex-col justify-between shadow-xl">
+                        <p class="text-xs text-green-400 uppercase tracking-wider font-bold">Bénéfice Net Total (JMS)</p>
+                        <p class="text-4xl font-mono text-green-400 font-bold mt-2"><span x-text="globalStats.totalCompanyProfit.toLocaleString('en-US')"></span> $</p>
+                    </div>
+                </div>
+
+                <div class="bg-stone-900 border border-stone-800 rounded-2xl p-5 shadow-xl flex flex-col">
+                    <h3 class="text-md font-bold text-stone-200 uppercase tracking-wider mb-2">Évolution Hebdomadaire (Global)</h3>
+                    <div class="flex-grow min-h-[400px] relative">
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="currentTab === 'suivi'" style="display: none;" class="space-y-6">
+                <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl">
+                    <h2 class="text-lg font-bold text-rose-400 uppercase tracking-wider mb-6 border-b border-stone-800 pb-4">Suivi individuel des employés</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="emp in getEmployeeStats()" :key="emp.name">
+                            <div class="bg-stone-950 border border-stone-800 p-5 rounded-xl">
+                                <h3 class="text-white font-bold uppercase tracking-wider mb-3 border-l-4 border-rose-700 pl-2" x-text="emp.name"></h3>
+                                <div class="space-y-1">
+                                    <p class="text-stone-400 text-xs">Total bouteilles : <span class="text-white font-mono font-bold" x-text="emp.totalBottles"></span></p>
+                                    <p class="text-stone-400 text-xs">Salaire dû : <span class="text-green-400 font-mono font-bold" x-text="emp.totalPay.toLocaleString() + ' $'"></span></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div x-show="currentTab === 'gestion'" class="space-y-6" style="display: none;">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl space-y-4">
+                        <h3 class="text-md font-bold text-rose-400 uppercase tracking-wider border-b border-stone-800 pb-2">Créer un Compte</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-400 mb-1">Identifiant</label>
+                                <input type="text" x-model="newUsername" placeholder="Ex: JeanDupont" class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-lg focus:outline-none focus:border-rose-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-400 mb-1">Mot de passe</label>
+                                <input type="text" x-model="newPassword" placeholder="Ex: azerty123" class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-lg focus:outline-none focus:border-rose-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-400 mb-1">Rôle</label>
+                                <select x-model="newRole" class="w-full bg-stone-950 border border-stone-800 text-white px-3 py-2 rounded-lg focus:outline-none focus:border-rose-500 text-sm">
+                                    <option value="employe">Employé</option>
+                                    <option value="novice">Novice</option>
+                                    <option value="co-patron">Co Patron</option>
+                                    <option value="patron">Patron</option>
+                                </select>
+                            </div>
+                            <button @click="addUser" class="w-full bg-rose-700 hover:bg-rose-600 text-white font-bold py-2.5 rounded-lg transition text-xs uppercase tracking-wider mt-2">
+                                + Ajouter l'utilisateur
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 bg-stone-900 border border-stone-800 rounded-2xl p-6 shadow-xl">
+                        <h3 class="text-md font-bold text-stone-200 uppercase tracking-wider border-b border-stone-800 pb-2 mb-4">Base de données des accès</h3>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left">
+                                <thead class="bg-stone-950 text-stone-400 text-xs uppercase border-b border-stone-800">
+                                    <tr>
+                                        <th class="py-3 px-4">Identifiant</th>
+                                        <th class="py-3 px-4">Mot de passe</th>
+                                        <th class="py-3 px-4">Rôle</th>
+                                        <th class="py-3 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-stone-800">
+                                    <template x-for="user in users" :key="user.id">
+                                        <tr class="hover:bg-stone-800/40 transition">
+                                            <td class="py-3 px-4 font-bold text-white" x-text="user.identifier"></td>
+                                            <td class="py-3 px-4 font-mono text-stone-400" x-text="user.password"></td>
+                                            <td class="py-3 px-4">
+                                                <span class="px-2 py-1 rounded text-xs font-bold uppercase border"
+                                                      :class="{
+                                                        'bg-rose-900/30 text-rose-400 border-rose-800': user.role === 'patron',
+                                                        'bg-orange-900/30 text-orange-400 border-orange-800': user.role === 'co-patron',
+                                                        'bg-stone-800 text-stone-300 border-stone-700': user.role === 'employe',
+                                                        'bg-blue-900/30 text-blue-400 border-blue-800': user.role === 'novice'
+                                                      }"
+                                                      x-text="user.role.replace('-', ' ')">
+                                                </span>
+                                            </td>
+                                            <td class="py-3 px-4 text-right">
+                                                <div class="flex items-center justify-end gap-3">
+                                                    <button @click="editUser(user.id)" class="text-xs text-blue-500 hover:text-blue-400 font-semibold underline">Modifier</button>
+                                                    <button @click="deleteUser(user.id)" class="text-xs text-red-500 hover:text-red-400 font-semibold underline">Supprimer</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <script>
-        function patronApp() {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { 
+            getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc 
+        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ⚠️ REMPLACE CE BLOC PAR TES PROPRES CLÉS OBTENUES À L'ÉTAPE 1 :
+        const firebaseConfig = {
+            apiKey: "COLE_ICI_TA_CLE_API",
+            authDomain: "vignoble-mmt.firebaseapp.com",
+            projectId: "vignoble-mmt",
+            storageBucket: "vignoble-mmt.firebasestorage.app",
+            messagingSenderId: "TON_SENDER_ID",
+            appId: "TON_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.vignobleApp = function() {
             return {
                 isLogged: false,
+                role: '', 
+                currentUser: '', 
                 identifier: '',
                 password: '',
-                error: '',
-                bottles: 0,
+                loginError: '',
+                currentTab: 'production',
+                
+                users: Alpine.$persist([
+                    { id: 1, identifier: 'patron', password: 'admin', role: 'patron' },
+                    { id: 2, identifier: 'employe', password: '1234', role: 'employe' }
+                ]).as('vignoble_users'),
+                
+                newUsername: '',
+                newPassword: '',
+                newRole: 'employe',
+                allWeeks: [],
+                selectedWeekIndex: 0,
+                bottlesProduced: 0,
+                history: [], 
+                chartInstance: null,
+
+                initApp() {
+                    this.generateWeeks();
+                    this.listenToFirebaseHistory();
+                },
+
+                generateWeeks() {
+                    let d = new Date(2025, 11, 29); 
+                    let weeks = [];
+                    for(let i=0; i<105; i++) { 
+                        let end = new Date(d);
+                        end.setDate(end.getDate() + 6);
+                        let startFmt = d.toLocaleDateString('fr-FR', {day: 'numeric', month: 'short'});
+                        let endFmt = end.toLocaleDateString('fr-FR', {day: 'numeric', month: 'short', year: 'numeric'});
+                        weeks.push({ index: i, label: `Du ${startFmt} au ${endFmt}` });
+                        d.setDate(d.getDate() + 7);
+                    }
+                    this.allWeeks = weeks;
+                },
+
+                listenToFirebaseHistory() {
+                    const q = query(collection(db, "production_history"), orderBy("createdAt", "desc"));
+                    onSnapshot(q, (snapshot) => {
+                        this.history = [];
+                        snapshot.forEach((document) => {
+                            this.history.push({
+                                id: document.id,
+                                ...document.data()
+                            });
+                        });
+                        if (this.currentTab === 'patron') {
+                            this.updateChart();
+                        }
+                    });
+                },
+
+                getRate(bottles) {
+                    if (bottles >= 5000) return 300;
+                    if (bottles >= 2500) return 260;
+                    if (bottles > 0) return 200;
+                    return 0;
+                },
+                get employeeRate() { return this.getRate(this.bottlesProduced); },
+                get employeeTotal() { return this.bottlesProduced * this.employeeRate; },
+                get companyRevenue() { return this.bottlesProduced * 330; },
+                get companyProfit() { return this.companyRevenue - this.employeeTotal; },
+
+                get visibleHistory() {
+                    if (['patron', 'co-patron'].includes(this.role)) return this.history;
+                    return this.history.filter(item => item.author === this.currentUser);
+                },
+
+                get groupedHistory() {
+                    let groups = {};
+                    this.visibleHistory.forEach(item => {
+                        let wIndex = item.weekIndex;
+                        if(!groups[wIndex]) {
+                            groups[wIndex] = { label: item.weekLabel, items: [], totalBottles: 0 };
+                        }
+                        groups[wIndex].items.push(item);
+                        groups[wIndex].totalBottles += item.bottles;
+                    });
+                    return groups;
+                },
+                
+                get availableWeeks() {
+                    return Object.keys(this.groupedHistory).sort((a, b) => a - b);
+                },
+
+                get globalStats() {
+                    let tBottles = 0, tEmp = 0, tProf = 0;
+                    this.history.forEach(i => {
+                        tBottles += i.bottles;
+                        tEmp += i.employeeTotal;
+                        tProf += i.companyProfit;
+                    });
+                    return { totalBottles: tBottles, totalEmployeePay: tEmp, totalCompanyProfit: tProf };
+                },
+
                 onLogin() {
-                    if (this.identifier === 'nie' && this.password === '1612') {
+                    const foundUser = this.users.find(u => u.identifier.toLowerCase() === this.identifier.trim().toLowerCase() && u.password === this.password);
+                    if (foundUser) {
                         this.isLogged = true;
-                        this.error = '';
+                        this.role = foundUser.role;
+                        this.currentUser = foundUser.identifier;
+                        this.loginError = '';
+                        this.currentTab = 'production';
                     } else {
-                        this.error = 'Identifiant ou mot de passe incorrect.';
+                        this.loginError = 'Identifiant ou mot de passe incorrect.';
                     }
                 },
-                getRate(b) {
-                    if (b >= 5000) return 300;
-                    if (b >= 2500) return 260;
-                    return 200;
+
+                getEmployeeStats() {
+                    let stats = {};
+                    this.history.forEach(item => {
+                        if (!stats[item.author]) stats[item.author] = { name: item.author, totalBottles: 0, totalPay: 0 };
+                        stats[item.author].totalBottles += item.bottles;
+                        stats[item.author].totalPay += item.employeeTotal;
+                    });
+                    return Object.values(stats);
+                },
+
+                addUser() {
+                    if(!this.newUsername.trim() || !this.newPassword.trim()) return alert('Remplissez les champs.');
+                    if(this.users.find(u => u.identifier.toLowerCase() === this.newUsername.toLowerCase().trim())) return alert('Existe déjà !');
+                    this.users.push({ id: Date.now(), identifier: this.newUsername.trim(), password: this.newPassword.trim(), role: this.newRole });
+                    this.newUsername = ''; this.newPassword = '';
+                },
+
+                editUser(id) {
+                    const idx = this.users.findIndex(u => u.id === id);
+                    if(idx === -1) return;
+                    let nId = prompt('Nouvel identifiant :', this.users[idx].identifier);
+                    let nPass = prompt('Nouveau mot de passe :', this.users[idx].password);
+                    if(nId) this.users[idx].identifier = nId.trim();
+                    if(nPass) this.users[idx].password = nPass.trim();
+                },
+
+                deleteUser(id) {
+                    if(this.users.length <= 1) return alert('Action impossible.');
+                    if(confirm('Supprimer ce compte ?')) this.users = this.users.filter(u => u.id !== id);
+                },
+
+                async saveProduction() {
+                    if (this.bottlesProduced <= 0) return;
+                    const weekObj = this.allWeeks.find(w => w.index === this.selectedWeekIndex);
+                    const newEntry = {
+                        createdAt: Date.now(),
+                        date: new Date().toLocaleString('fr-FR', {hour: '2-digit', minute:'2-digit', day:'numeric', month:'short'}),
+                        author: this.currentUser,
+                        weekIndex: this.selectedWeekIndex,
+                        weekLabel: weekObj.label,
+                        bottles: this.bottlesProduced,
+                        rate: this.employeeRate,
+                        employeeTotal: this.employeeTotal,
+                        companyProfit: this.companyProfit
+                    };
+                    try {
+                        await addDoc(collection(db, "production_history"), newEntry);
+                        this.bottlesProduced = 0; 
+                    } catch (e) { console.error(e); }
+                },
+
+                async editHistory(id) {
+                    const item = this.history.find(i => i.id === id);
+                    if(!item) return;
+                    const newValue = prompt('Modifier le nombre de bouteilles :', item.bottles);
+                    if (newValue) {
+                        const b = parseInt(newValue, 10);
+                        const rate = this.getRate(b);
+                        const empTotal = b * rate;
+                        try {
+                            await updateDoc(doc(db, "production_history", id), {
+                                bottles: b, rate: rate, employeeTotal: empTotal, companyProfit: (b * 330) - empTotal
+                            });
+                        } catch (e) { console.error(e); }
+                    }
+                },
+
+                async deleteHistory(id) {
+                    if(confirm('Supprimer cet enregistrement ?')) {
+                        try { await deleteDoc(doc(db, "production_history", id)); } catch (e) { console.error(e); }
+                    }
+                },
+
+                getChartData() {
+                    let labels = [], employeeData = [], profitData = [], globalGroups = {};
+                    this.history.forEach(item => {
+                        let wIndex = item.weekIndex;
+                        if(!globalGroups[wIndex]) globalGroups[wIndex] = { label: item.weekLabel, empPay: 0, prof: 0 };
+                        globalGroups[wIndex].empPay += item.employeeTotal;
+                        globalGroups[wIndex].prof += item.companyProfit;
+                    });
+                    let sorted = Object.keys(globalGroups).sort((a, b) => a - b);
+                    sorted.forEach(wId => {
+                        labels.push(globalGroups[wId].label);
+                        employeeData.push(globalGroups[wId].empPay);
+                        profitData.push(globalGroups[wId].prof);
+                    });
+                    return { labels, employeeData, profitData };
+                },
+
+                updateChart() {
+                    const ctx = document.getElementById('weeklyChart');
+                    if (!ctx) return;
+                    const datasets = this.getChartData();
+                    if (this.chartInstance) {
+                        this.chartInstance.data.labels = datasets.labels;
+                        this.chartInstance.data.datasets[0].data = datasets.employeeData;
+                        this.chartInstance.data.datasets[1].data = datasets.profitData;
+                        this.chartInstance.update();
+                    } else {
+                        this.chartInstance = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: datasets.labels,
+                                datasets: [
+                                    { label: 'Salaire global ($)', data: datasets.employeeData, backgroundColor: '#be123c', borderRadius: 4 },
+                                    { label: 'Bénéfice JMS ($)', data: datasets.profitData, backgroundColor: '#15803d', borderRadius: 4 }
+                                ]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { labels: { color: '#d6d3d1' } } },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { color: '#d6d3d1' } },
+                                    y: { grid: { color: '#292524' }, ticks: { color: '#d6d3d1' } }
+                                }
+                            }
+                        });
+                    }
                 }
             }
         }
